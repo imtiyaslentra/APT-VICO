@@ -9,13 +9,32 @@ getgenv().Paws = {
         ["BallSpeedCheck"] = true,
 }
 
+local VirtualManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local ReplicatedPaw = game:GetService("ReplicatedStorage")
+local originalParryRemote
+local originalResolveParryRemote 
 
 local Paws = ReplicatedPaw:WaitForChild("Remotes", 9e9)
 local PawsBalls = workspace:WaitForChild("Balls", 9e9)
 local PawsTable = getgenv().Paws
+
+function resolve_parry_Remote()
+ local temp_remote = game:GetService("VirtualUser"):WaitForChild("\n\n\n\n\n\n\n")
+
+    if not temp_remote then
+        return
+    end
+
+    if not temp_remote:IsA('RemoteEvent') then
+        return
+    end
+
+    originalParryRemote = temp_remote
+end
+
+resolve_parry_Remote()
 
 local function IsTheTarget()
         return Player.Character:FindFirstChild("Highlight")
@@ -53,6 +72,7 @@ game:GetService("RunService").PreRender:connect(function()
         end
         
         if (Distance / BallVelocity) <= PawsTable.DistanceToParry and IsTheTarget() and PawsTable.AutoParry then
-               Paws:WaitForChild("ParryButtonPress"):Fire()
+
+VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
            end
 end)

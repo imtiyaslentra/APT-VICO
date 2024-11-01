@@ -1,6 +1,6 @@
 --// by Rudert
 
-print("successful!")
+print("successful! now load the Script.")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {

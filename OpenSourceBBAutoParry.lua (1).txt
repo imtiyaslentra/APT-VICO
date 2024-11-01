@@ -3,10 +3,15 @@
 --// Notes: I'm not giving away my Freeze & Invisibility Detection, lmao, this is sort of decent, time based. Enjoy, Skid, or Learn; It's Your Choice.
 
 local RunService = game:GetService("RunService")
+local Stats =
+game:GetService("Stats")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Nurysium_Util = loadstring(game:HttpGet("https://raw.githubusercontent.com/flezzpe/Nurysium/main/nurysium_helper.lua"))()
+local TweenService = game:GetService("TweenService")
+local speedFactorPingBased
+local speedFactor
 
 local function getTrainingBall()
     for _, ball in Workspace:WaitForChild("TrainingBalls"):GetChildren() do

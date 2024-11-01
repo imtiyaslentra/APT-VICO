@@ -25,6 +25,10 @@ local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
 local BallsContainer = Workspace:WaitForChild("Balls", 9e9)
 local Services = {game:GetService("AdService"),game:GetService("SocialService")}
+local aura_Enabled = true
+local auto_curve = false
+local auto_spam = true
+potanum = 30
 
 function resolve_parry_Remote()
  local temp_remote = game:GetService("VirtualUser"):WaitForChild("\n\n\n\n\n")

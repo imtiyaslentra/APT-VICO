@@ -17,9 +17,14 @@ local function getTrainingBall()
     end
 end
 
+local camera = workspace.CurrentCamera
+
+local originalParryRemote
+local originalResolveParryRemote 
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
 local BallsContainer = Workspace:WaitForChild("Balls", 9e9)
+local Services = {game:GetService("AdService"),game:GetService("SocialService")}
 
 function resolve_parry_Remote()
  local temp_remote = game:GetService("VirtualUser"):WaitForChild("\n\n\n\n\n")
@@ -223,7 +228,7 @@ RunService.Heartbeat:Connect(function()
         local target_X = targetPosition.X
         local target_Y = targetPosition.Y
 
-        parry_remote:FireServer(
+        originalParryRemote:FireServer(
                 0.5,
                 CFrame.new(camera.CFrame.Position, Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))),
                 {[closest_Entity.Name] = target_Position},

@@ -1,6 +1,6 @@
 --// by Rudert
 
-print("successful load the script")
+print("successful")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
@@ -12,9 +12,9 @@ getgenv().Paws = {
     ["DynamicDistance"] = true,
     ["AngleThreshold"] = 45,
     ["TrajectoryPrediction"] = true,
-    ["WarpDetection"] = true,  -- Deteksi belokan tajam
+    ["WarpDetection"] = true,
     ["ExecutorCheck"] = true,
-    ["AimbotPrediction"] = true, -- Prediksi Aimbot
+    ["AimbotPrediction"] = true,
 }
 
 local Players = game:GetService("Players")
@@ -24,7 +24,6 @@ local PawsTable = getgenv().Paws
 
 -- Fungsi untuk menemukan bola
 local function FindBall()
-    local RealBall
     local Balls = workspace:WaitForChild("Balls", 5)
     if not Balls then
         warn("Balls not found in workspace")
@@ -32,11 +31,10 @@ local function FindBall()
     end
     for _, v in pairs(Balls:GetChildren()) do
         if v:GetAttribute("realBall") == true then
-            RealBall = v
-            break
+            return v
         end
     end
-    return RealBall
+    return nil
 end
 
 -- Fungsi untuk menghitung sudut kedatangan bola
@@ -67,36 +65,26 @@ game:GetService("RunService").PreRender:Connect(function()
     local Ball = FindBall()
     if not Ball then return end
 
+    -- Pastikan karakter dan HumanoidRootPart tersedia
     if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-        return -- Kembalikan jika belum siap
+        return
     end
 
     local PlayerPosition = Player.Character.HumanoidRootPart.Position
     local BallPosition = Ball.Position
     local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude
-    local PlayerVelocity = Player.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude
     local Distance = Player:DistanceFromCharacter(BallPosition)
-
-    -- Distance Parry Adjustment with Dynamic Speed
-    if PawsTable.DynamicDistance then
-        local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
-        PawsTable.DistanceToParry = math.max(math.max(ping, 3.5) + BallVelocity / 50, 0.5)
-    end
-
-    -- Penghitungan sudut kedatangan bola
+    
+    -- Cegah spam parry jika bola tidak benar-benar menarget
     local AngleToBall = CalculateAngle(BallPosition, PlayerPosition, Player.Character.HumanoidRootPart.CFrame.LookVector)
     if AngleToBall > PawsTable.AngleThreshold then
         return -- Tidak melakukan parry jika sudut melebihi threshold
     end
 
-    -- Deteksi belokan tajam
-    if PawsTable.WarpDetection then
-        local currentDirection = Ball.AssemblyLinearVelocity.unit
-        local previousDirection = previousDirection or currentDirection
-        if (currentDirection - previousDirection).Magnitude > 0.5 then
-            warn("Ball is warping, sharp turn detected")
-        end
-        previousDirection = currentDirection
+    -- Pengaturan jarak dinamis berdasarkan kecepatan bola
+    if PawsTable.DynamicDistance then
+        local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
+        PawsTable.DistanceToParry = math.max(math.max(ping, 3.5) + BallVelocity / 50, 0.5)
     end
 
     -- Prediksi posisi dan waktu kedatangan bola
@@ -105,10 +93,13 @@ game:GetService("RunService").PreRender:Connect(function()
     end
     local timeToArrival = CalculateTimeToArrival(Ball, PlayerPosition)
 
-    -- Pengaturan jarak berdasarkan kecepatan bola dan waktu kedatangan
+    -- Cegah parry jika waktu kedatangan terlalu jauh
+    if timeToArrival > PawsTable.DistanceToParry then return end
+
+    -- Cek jika ping-based disesuaikan untuk jarak
     if PawsTable.PingBased then
-        local ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
-        Distance -= ping + PawsTable.PingBasedOffset
+        local Ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
+        Distance -= Ping + PawsTable.PingBasedOffset
     end
 
     -- Pastikan kecepatan bola > 0 jika BallSpeedCheck diaktifkan
@@ -116,12 +107,13 @@ game:GetService("RunService").PreRender:Connect(function()
 
     -- Executor Check untuk akurasi
     if PawsTable.ExecutorCheck then
-        local velocityRatio = BallVelocity / (BallVelocity + PlayerVelocity)
+        local playerSpeed = Player.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude
+        local velocityRatio = BallVelocity / (BallVelocity + playerSpeed)
         print("Executor Accuracy:", math.floor(velocityRatio * 100), "%")
     end
 
     -- Lakukan parry jika semua kondisi terpenuhi
-    if (Distance / BallVelocity) <= PawsTable.DistanceToParry and PawsTable.AutoParry then
+    if Distance <= PawsTable.DistanceToParry and PawsTable.AutoParry then
         VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
     end
 end)

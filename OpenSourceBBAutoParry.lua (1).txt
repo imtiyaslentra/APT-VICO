@@ -1,6 +1,6 @@
 --// by Rudert
 
-print("successful")
+print("successful!")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
@@ -43,7 +43,7 @@ local function CalculateAngle(ballPosition, playerPosition, playerLookVector)
     return math.deg(math.acos(directionToBall:Dot(playerLookVector)))
 end
 
--- Fungsi untuk prediksi posisi bola
+-- Fungsi untuk memprediksi posisi bola
 local function PredictBallPosition(ball, deltaTime)
     if ball then
         return ball.Position + (ball.AssemblyLinearVelocity * deltaTime)
@@ -58,6 +58,13 @@ local function CalculateTimeToArrival(ball, playerPosition)
         return distance / speed
     end
     return math.huge
+end
+
+-- Fungsi untuk melakukan parry
+local function TryParry()
+    if PawsTable.AutoParry then
+        VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    end
 end
 
 -- Fungsi utama AutoParry
@@ -113,7 +120,7 @@ game:GetService("RunService").PreRender:Connect(function()
     end
 
     -- Lakukan parry jika semua kondisi terpenuhi
-    if Distance <= PawsTable.DistanceToParry and PawsTable.AutoParry then
-        VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    if Distance <= PawsTable.DistanceToParry and timeToArrival <= PawsTable.DistanceToParry then
+        TryParry()
     end
 end)

@@ -305,5 +305,5 @@ RunService.Heartbeat:Connect(function()
         until (tick() - aura_table.hit_Time) >= 1
         aura_table.canParry = true
     end)
-
-end) -- Closing 'RunService.Heartbeat:Connect' function
+end)
+end)

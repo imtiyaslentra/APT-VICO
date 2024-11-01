@@ -76,9 +76,9 @@ RunService.Heartbeat:Connect(function()
 end)
 
 RunService.PreRender:Connect(function()
-local networkStats = game:WaitForChild("Stats"):WaitForChild("Network")
-local pingStatItem = networkStats:WaitForChild("ServerStatsItem"):WaitForChild("Data Ping")
-local ping = pingStatItem:GetValue() / 10
+    local networkStats = game:WaitForChild("Stats"):WaitForChild("Network")
+    local pingStatItem = networkStats:WaitForChild("ServerStatsItem"):WaitForChild("Data Ping")
+    local ping = pingStatItem:GetValue() / 10
     local self = training_mode and getTrainingBall() or Nurysium_Util.getBall()
 
     if not self then return end -- Ensure the ball exists
@@ -131,20 +131,25 @@ local ping = pingStatItem:GetValue() / 10
 
     local Ping = ball_Velocity * (ping / 1000)
 
-    if VicoTable.PingBased then
-        local Distance
-        if type(aura_table.DistanceToParry) == "number" then
-            Distance = aura_table.DistanceToParry - (Ping + PawsTable.PingBasedOffset)
-            if Distance < 0 then Distance = 0 end -- Prevent negative values
-        else
-            warn("aura_table.DistanceToParry is not a number!")
-            Distance = 0 -- Fallback or alternative handling
+    -- Pastikan VicoTable didefinisikan
+    if VicoTable then
+        if VicoTable.PingBased then
+            local Distance
+            if type(aura_table.DistanceToParry) == "number" then
+                Distance = aura_table.DistanceToParry - (Ping + aura_table.PingBasedOffset)
+                if Distance < 0 then Distance = 0 end -- Prevent negative values
+            else
+                warn("aura_table.DistanceToParry is not a number!")
+                Distance = 0 -- Fallback or alternative handling
+            end
         end
-    end
 
-    if VicoTable.BallSpeedCheck and ball_Speed == 0 then return end -- Check ball speed
+        if VicoTable.BallSpeedCheck and ball_Speed == 0 then return end -- Check ball speed
 
-    if ball_Distance <= aura_table.parry_Range and not aura_table.is_ball_Warping and ball_Speed > 0 and ball_Dot > 0.1 then
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+        if ball_Distance <= aura_table.parry_Range and not aura_table.is_ball_Warping and ball_Speed > 0 and ball_Dot > 0.1 then
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+        end
+    else
+        warn("VicoTable is nil!") -- Peringatan jika VicoTable tidak didefinisikan
     end
 end)

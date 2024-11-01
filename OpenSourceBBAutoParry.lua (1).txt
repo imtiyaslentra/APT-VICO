@@ -21,6 +21,7 @@ local camera = workspace.CurrentCamera
 
 local originalParryRemote
 local originalResolveParryRemote 
+local 
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
 local BallsContainer = Workspace:WaitForChild("Balls", 9e9)
@@ -117,8 +118,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 task.spawn(function()
-RunService.Heartbeat:Connect(function()
-        -- Pre-check if auto_spam is enabled, player exists, and not in training mode
+autospamvar = RunService.Heartbeat:Connect(function()
         if not auto_spam or not workspace.Alive:FindFirstChild(local_player.Name) or training_mode then
             -- Reset aura table and spam states
             aura_table.hit_Count = 0
@@ -167,7 +167,7 @@ RunService.Heartbeat:Connect(function()
         end
     end)
 
-RunService.Heartbeat:Connect(function()
+autoparryvar = RunService.Heartbeat:Connect(function()
     if not aura_Enabled or not (workspace.Alive:FindFirstChild(local_player.Name) or training_mode) then
         aura_table.hit_Time = tick() * 10
         aura_table.hit_Count = 0
@@ -310,4 +310,34 @@ RunService.Heartbeat:Connect(function()
         aura_table.canParry = true
     end)
 end)
+end)
+
+-- Define a safe disconnect function to avoid errors
+local function safeDisconnect(connection)
+    if connection and connection.Disconnect then
+        connection:Disconnect()
+    end
+end
+
+-- Function to manage connections
+local function manageConnection(flag, varName, runServiceFunc)
+    if flag then
+        if not _G[varName] then
+            -- Create the RunService connection if the flag is true and connection is not already created
+            _G[varName] = RunService[runServiceFunc]:Connect(function()
+                -- Your code for what the connection does
+            end)
+        end
+    else
+        -- Disconnect and clear the connection if the flag is false
+        safeDisconnect(_G[varName])
+        _G[varName] = nil
+    end
+end
+
+-- Main loop running on Heartbeat
+RunService.Heartbeat:Connect(function()
+    manageConnection(visualize_Enabled, "visualizervar", "Heartbeat")
+    manageConnection(auto_spam, "autospamvar", "Heartbeat")
+    manageConnection(aura_Enabled, "autoparryvar", "Heartbeat")
 end)

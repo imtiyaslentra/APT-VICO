@@ -32,6 +32,11 @@ game:GetService("RunService").PreRender:connect(function()
     local Ball = FindBall()
     if not Ball then return end
 
+    -- Cek apakah karakter dan HumanoidRootPart tersedia
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+        return -- Kembalikan jika belum siap
+    end
+
     local PlayerPosition = Player.Character.HumanoidRootPart.Position
     local BallPosition = Ball.Position
     local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude

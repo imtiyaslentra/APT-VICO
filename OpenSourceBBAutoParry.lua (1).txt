@@ -1,6 +1,8 @@
 --// by Rudert
 
 print("successful! now load the Script.")
+wait(1)
+print("hanya test ya Rawr")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {

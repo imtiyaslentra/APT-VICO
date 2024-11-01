@@ -1,3 +1,5 @@
+--// by Rudert
+
 print("succesfull")
 
 -- Pengaturan tambahan untuk deteksi

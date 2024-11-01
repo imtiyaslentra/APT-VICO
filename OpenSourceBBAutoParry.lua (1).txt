@@ -76,7 +76,9 @@ RunService.Heartbeat:Connect(function()
 end)
 
 RunService.PreRender:Connect(function()
-    local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 10
+local networkStats = game:WaitForChild("Stats"):WaitForChild("Network")
+local pingStatItem = networkStats:WaitForChild("ServerStatsItem"):WaitForChild("Data Ping")
+local ping = pingStatItem:GetValue() / 10
     local self = training_mode and getTrainingBall() or Nurysium_Util.getBall()
 
     if not self then return end -- Ensure the ball exists

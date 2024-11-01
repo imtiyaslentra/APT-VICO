@@ -224,33 +224,31 @@ RunService.Heartbeat:Connect(function()
     end)
 
     if ball_Distance <= aura_table.parry_Range and not aura_table.is_ball_Warping and ball_Speed > 0 and ball_Dot > 0.1 then
-        local cf = camera.CFrame
-        local target_X = targetPosition.X
-        local target_Y = targetPosition.Y
+    local cf = camera.CFrame
+    local target_X = targetPosition.X
+    local target_Y = targetPosition.Y
 
-        originalParryRemote:FireServer(
-                0.5,
-                CFrame.new(camera.CFrame.Position, Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))),
-                {[closest_Entity.Name] = target_Position},
-                {target_Position.X, target_Position.Y},
-                false
-            )
-        end
+    originalParryRemote:FireServer(
+        0.5,
+        CFrame.new(camera.CFrame.Position, Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))),
+        {[closest_Entity.Name] = target_Position},
+        {target_Position.X, target_Position.Y},
+        false
+    ) -- Check for closing parentheses here
 
-        aura_table.hit_Count = aura_table.hit_Count + 1
-        task.delay(0.55 + (ping / 100), function()
-            aura_table.hit_Count = aura_table.hit_Count - 1
-        end)
+    aura_table.hit_Count = aura_table.hit_Count + 1
 
-        aura_table.hit_Time = tick()
-        aura_table.canParry = false
-    end
-
-    task.spawn(function()
-        repeat
-            RunService.PreRender:Wait()
-        until (tick() - aura_table.hit_Time) >= 1
-        aura_table.canParry = true
+    task.delay(0.55 + (ping / 100), function()
+        aura_table.hit_Count = aura_table.hit_Count - 1
     end)
-end)
-end)
+
+    aura_table.hit_Time = tick()
+    aura_table.canParry = false
+end -- Closing 'if' statement
+
+task.spawn(function()
+    repeat
+        RunService.PreRender:Wait()
+    until (tick() - aura_table.hit_Time) >= 1
+    aura_table.canParry = true
+end) -- Ensure this 'task.spawn' has a closing parenthesis

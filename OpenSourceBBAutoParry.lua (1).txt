@@ -44,7 +44,9 @@ resolve_parry_Remote()
 
 local aura_table = {
     canParry = true,
+    is_Spamming = false,
     parry_Range = 30,
+    spam_Range = 0,
     BallSpeedCheck = true,
     hit_Count = 0,
     hit_Time = tick(),
@@ -108,6 +110,61 @@ end
 
 RunService.Heartbeat:Connect(function()
     closestEntityToMouse = getClosestEntityToMouse()
+end)
+
+task.spawn(function()
+RunService.Heartbeat:Connect(function()
+        -- Pre-check if auto_spam is enabled, player exists, and not in training mode
+        if not auto_spam or not workspace.Alive:FindFirstChild(local_player.Name) or training_mode then
+            -- Reset aura table and spam states
+            aura_table.hit_Count = 0
+            aura_table.is_Spamming = false
+            aura_table.last_target = nil
+            ismyautoparryspamming = false
+            aura_table.spam_Range = 0
+            autospamvar:Disconnect() -- Hentikan koneksi saat auto_spam dimatikan
+            return
+        end
+
+        -- Proceed only if closest entity is valid and in workspace
+        if closest_Entity and workspace.Alive:FindFirstChild(closest_Entity.Name) and ((not standalone and aura_table.is_Spamming) or (standalone)) then
+            local playerPosition = local_player.Character.PrimaryPart.Position
+            local entityPosition = closest_Entity.HumanoidRootPart.Position
+            local distanceToEntity = local_player:DistanceFromCharacter(entityPosition)
+            
+            -- Perform spam actions only when within range
+            if distanceToEntity <= aura_table.spam_Range then
+                ismyautoparryspamming = true
+
+                -- Pre-compute values before the loop for efficiency
+                local cf = camera.CFrame
+                local randomTarget = Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))
+                local targetPosition = closest_Entity_To_mouse.HumanoidRootPart.Position
+                local fireArgs = {
+                    {[closest_Entity_To_mouse.Name] = targetPosition},
+                    {targetPosition.X, targetPosition.Y}
+                }
+
+                -- Perform spamming asynchronously for speed using task.defer
+                task.defer(function()
+                    for count = 1, potanum do
+                        if auto_curve then
+                            originalParryRemote:FireServer(0, CFrame.new(cf.Position, randomTarget), unpack(fireArgs))
+                        else
+                            originalParryRemote:FireServer(0, cf, unpack(fireArgs))
+                        end
+                        wait(0.0001) -- Tambahkan jeda untuk menghindari spam yang berlebihan
+                    end
+                end)
+            else
+                -- Reset spam state if out of range
+                ismyautoparryspamming = false
+            end
+        else
+            -- Reset spam state if entity is not found
+            ismyautoparryspamming = false
+        end
+    end)
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -224,31 +281,33 @@ RunService.Heartbeat:Connect(function()
     end)
 
     if ball_Distance <= aura_table.parry_Range and not aura_table.is_ball_Warping and ball_Speed > 0 and ball_Dot > 0.1 then
-    local cf = camera.CFrame
-    local target_X = targetPosition.X
-    local target_Y = targetPosition.Y
+        local cf = camera.CFrame
+        local target_X = targetPosition.X
+        local target_Y = targetPosition.Y
 
-    originalParryRemote:FireServer(
-        0.5,
-        CFrame.new(camera.CFrame.Position, Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))),
-        {[closest_Entity.Name] = target_Position},
-        {target_Position.X, target_Position.Y},
-        false
-    ) -- Check for closing parentheses here
+        originalParryRemote:FireServer(
+            0.5,
+            CFrame.new(camera.CFrame.Position, Vector3.new(math.random(-1000, 1000), math.random(0, 1000), math.random(100, 1000))),
+            {[closest_Entity.Name] = target_Position},
+            {target_Position.X, target_Position.Y},
+            false
+        ) -- Check for closing parentheses here
 
-    aura_table.hit_Count = aura_table.hit_Count + 1
+        aura_table.hit_Count = aura_table.hit_Count + 1
 
-    task.delay(0.55 + (ping / 100), function()
-        aura_table.hit_Count = aura_table.hit_Count - 1
+        task.delay(0.55 + (ping / 100), function()
+            aura_table.hit_Count = aura_table.hit_Count - 1
+        end)
+
+        aura_table.hit_Time = tick()
+        aura_table.canParry = false
+    end -- Closing 'if' statement for parry check
+
+    task.spawn(function()
+        repeat
+            RunService.PreRender:Wait()
+        until (tick() - aura_table.hit_Time) >= 1
+        aura_table.canParry = true
     end)
 
-    aura_table.hit_Time = tick()
-    aura_table.canParry = false
-end -- Closing 'if' statement
-
-task.spawn(function()
-    repeat
-        RunService.PreRender:Wait()
-    until (tick() - aura_table.hit_Time) >= 1
-    aura_table.canParry = true
-end) -- Ensure this 'task.spawn' has a closing parenthesis
+end) -- Closing 'RunService.Heartbeat:Connect' function

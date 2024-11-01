@@ -8,12 +8,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Nurysium_Util = loadstring(game:HttpGet("https://raw.githubusercontent.com/flezzpe/Nurysium/main/nurysium_helper.lua"))()
+
 local function getTrainingBall()
-	for index, ball in workspace:WaitForChild("TrainingBalls"):GetChildren() do
-		if ball:IsA("BasePart") and ball:GetAttribute("realBall") then
-			return ball
-		end
-	end
+    for _, ball in Workspace:WaitForChild("TrainingBalls"):GetChildren() do
+        if ball:IsA("BasePart") and ball:GetAttribute("realBall") then
+            return ball
+        end
+    end
 end
 
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
@@ -76,13 +77,9 @@ end)
 
 RunService.PreRender:Connect(function()
     local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 10
-    local self
+    local self = training_mode and getTrainingBall() or Nurysium_Util.getBall()
 
-    if training_mode then
-        self = getTrainingBall()
-    else
-        self = Nurysium_Util.getBall()
-    end
+    if not self then return end -- Ensure the ball exists
 
     local player_Position = Player.Character.PrimaryPart.Position
     local ball_Position = self.Position
@@ -96,20 +93,19 @@ RunService.PreRender:Connect(function()
     local player_Velocity = Player.Character.HumanoidRootPart.AssemblyLinearVelocity
     local player_isMoving = player_Velocity.Magnitude > 0
     local ball_speed_Limited = math.min(ball_Speed / 1000, 0.1)
-    local ball_predicted_Distance = (ball_Distance - game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 15.3) - (ball_Speed / 3.5)
+    local ball_predicted_Distance = (ball_Distance - ping / 15.3) - (ball_Speed / 3.5)
 
-    if not closest_Entity_To_mouse then return end -- Ensure there is a target
+    if not closestEntityToMouse then return end -- Ensure there is a target
 
-    local targetPosition = closest_Entity_To_mouse.HumanoidRootPart.Position
+    local targetPosition = closestEntityToMouse.HumanoidRootPart.Position
     local target_Distance = Player:DistanceFromCharacter(targetPosition)
-    local closest_target_Distance = Player:DistanceFromCharacter(closest_Entity_To_mouse.HumanoidRootPart.Position)
+    local closest_target_Distance = Player:DistanceFromCharacter(closestEntityToMouse.HumanoidRootPart.Position)
     local target_distance_Limited = math.min(target_Distance / 10000, 0.1)
-    local target_Direction = (player_Position - closest_Entity_To_mouse.HumanoidRootPart.Position).Unit
-    local target_Velocity = closest_Entity_To_mouse.HumanoidRootPart.AssemblyLinearVelocity
+    local target_Direction = (player_Position - closestEntityToMouse.HumanoidRootPart.Position).Unit
+    local target_Velocity = closestEntityToMouse.HumanoidRootPart.AssemblyLinearVelocity
     local target_isMoving = target_Velocity.Magnitude > 0
     local target_Dot = target_isMoving and math.max(target_Direction:Dot(target_Velocity.Unit), 0) or 0
 
-    local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
     local speedFactor = 3 - (ping / 100)
     local speedFactorPingBased = 6.1 - (ping / 100)
     aura_table.parry_Range = math.max(math.max(ping, 3.5) + ball_Speed / speedFactor, speedFactorPingBased)
@@ -128,19 +124,17 @@ RunService.PreRender:Connect(function()
                 aura_table.is_ball_Warping = false
             end
         end
-
         aura_table.is_ball_Warping = true
     end
 
     local Ping = ball_Velocity * (ping / 1000)
 
     if VicoTable.PingBased then
-        -- Ensure Distance is calculated based on a number
+        local Distance
         if type(aura_table.DistanceToParry) == "number" then
             Distance = aura_table.DistanceToParry - (Ping + PawsTable.PingBasedOffset)
             if Distance < 0 then Distance = 0 end -- Prevent negative values
         else
-            -- Handle case where DistanceToParry is not a number
             warn("aura_table.DistanceToParry is not a number!")
             Distance = 0 -- Fallback or alternative handling
         end

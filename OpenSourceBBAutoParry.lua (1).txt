@@ -1,6 +1,6 @@
 --// by Rudert
 
-print("succesfull load the autoparry")
+print("successful load the script")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
@@ -9,9 +9,12 @@ getgenv().Paws = {
     ["PingBasedOffset"] = 0,
     ["DistanceToParry"] = 0.5,
     ["BallSpeedCheck"] = true,
-    ["DynamicDistance"] = true,  -- Pengaturan jarak dinamis
-    ["AngleThreshold"] = 45,     -- Sudut maksimum untuk parry (dalam derajat)
-    ["TrajectoryPrediction"] = true -- Mengaktifkan prediksi jalur
+    ["DynamicDistance"] = true,
+    ["AngleThreshold"] = 45,
+    ["TrajectoryPrediction"] = true,
+    ["WarpDetection"] = true,  -- Deteksi belokan tajam
+    ["ExecutorCheck"] = true,
+    ["AimbotPrediction"] = true, -- Prediksi Aimbot
 }
 
 local Players = game:GetService("Players")
@@ -27,7 +30,7 @@ local function FindBall()
         warn("Balls not found in workspace")
         return nil
     end
-    for i, v in pairs(Balls:GetChildren()) do
+    for _, v in pairs(Balls:GetChildren()) do
         if v:GetAttribute("realBall") == true then
             RealBall = v
             break
@@ -39,29 +42,31 @@ end
 -- Fungsi untuk menghitung sudut kedatangan bola
 local function CalculateAngle(ballPosition, playerPosition, playerLookVector)
     local directionToBall = (ballPosition - playerPosition).unit
-    local angle = math.deg(math.acos(directionToBall:Dot(playerLookVector)))
-    return angle
+    return math.deg(math.acos(directionToBall:Dot(playerLookVector)))
 end
 
--- Fungsi untuk memprediksi jalur bola
-local function PredictBallPosition(ball)
+-- Fungsi untuk prediksi posisi bola
+local function PredictBallPosition(ball, deltaTime)
     if ball then
-        local futurePosition = ball.Position + (ball.AssemblyLinearVelocity * 0.1) -- 0.1 detik ke depan
-        return futurePosition
+        return ball.Position + (ball.AssemblyLinearVelocity * deltaTime)
     end
 end
 
--- Fungsi untuk memastikan target
-local function IsTheTarget()
-    return Player.Character and Player.Character:FindFirstChild("Highlight")
+-- Fungsi untuk memprediksi waktu kedatangan bola
+local function CalculateTimeToArrival(ball, playerPosition)
+    local distance = (ball.Position - playerPosition).Magnitude
+    local speed = ball.AssemblyLinearVelocity.Magnitude
+    if speed > 0 then
+        return distance / speed
+    end
+    return math.huge
 end
 
--- Modifikasi utama pada auto-parry
+-- Fungsi utama AutoParry
 game:GetService("RunService").PreRender:Connect(function()
     local Ball = FindBall()
     if not Ball then return end
 
-    -- Cek apakah karakter dan HumanoidRootPart tersedia
     if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
         return -- Kembalikan jika belum siap
     end
@@ -69,11 +74,13 @@ game:GetService("RunService").PreRender:Connect(function()
     local PlayerPosition = Player.Character.HumanoidRootPart.Position
     local BallPosition = Ball.Position
     local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude
+    local PlayerVelocity = Player.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude
     local Distance = Player:DistanceFromCharacter(BallPosition)
 
-    -- Pengaturan jarak dinamis berdasarkan kecepatan bola
+    -- Distance Parry Adjustment with Dynamic Speed
     if PawsTable.DynamicDistance then
-        PawsTable.DistanceToParry = math.clamp(BallVelocity / 50, 0.2, 1.5)
+        local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
+        PawsTable.DistanceToParry = math.max(math.max(ping, 3.5) + BallVelocity / 50, 0.5)
     end
 
     -- Penghitungan sudut kedatangan bola
@@ -82,22 +89,39 @@ game:GetService("RunService").PreRender:Connect(function()
         return -- Tidak melakukan parry jika sudut melebihi threshold
     end
 
-    -- Prediksi posisi bola di masa depan (jalur)
-    if PawsTable.TrajectoryPrediction then
-        BallPosition = PredictBallPosition(Ball) or BallPosition
+    -- Deteksi belokan tajam
+    if PawsTable.WarpDetection then
+        local currentDirection = Ball.AssemblyLinearVelocity.unit
+        local previousDirection = previousDirection or currentDirection
+        if (currentDirection - previousDirection).Magnitude > 0.5 then
+            warn("Ball is warping, sharp turn detected")
+        end
+        previousDirection = currentDirection
     end
 
-    -- Hitung jarak dengan penyesuaian ping
-    local Ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
+    -- Prediksi posisi dan waktu kedatangan bola
+    if PawsTable.TrajectoryPrediction then
+        BallPosition = PredictBallPosition(Ball, 0.1) or BallPosition
+    end
+    local timeToArrival = CalculateTimeToArrival(Ball, PlayerPosition)
+
+    -- Pengaturan jarak berdasarkan kecepatan bola dan waktu kedatangan
     if PawsTable.PingBased then
-        Distance -= Ping + PawsTable.PingBasedOffset
+        local ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
+        Distance -= ping + PawsTable.PingBasedOffset
     end
 
     -- Pastikan kecepatan bola > 0 jika BallSpeedCheck diaktifkan
     if PawsTable.BallSpeedCheck and BallVelocity == 0 then return end
 
+    -- Executor Check untuk akurasi
+    if PawsTable.ExecutorCheck then
+        local velocityRatio = BallVelocity / (BallVelocity + PlayerVelocity)
+        print("Executor Accuracy:", math.floor(velocityRatio * 100), "%")
+    end
+
     -- Lakukan parry jika semua kondisi terpenuhi
-    if (Distance / BallVelocity) <= PawsTable.DistanceToParry and IsTheTarget() and PawsTable.AutoParry then
+    if (Distance / BallVelocity) <= PawsTable.DistanceToParry and PawsTable.AutoParry then
         VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
     end
 end)

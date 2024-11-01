@@ -9,30 +9,29 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local Paws = ReplicatedStorage:WaitForChild("Remotes", 9e9)
-local PawsBalls = Workspace:WaitForChild("Balls", 9e9)
-local PawsTable = getgenv().Paws
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
+local BallsContainer = Workspace:WaitForChild("Balls", 9e9)
 
 local aura_table = {
-    ["canParry"] = true,
-    ["PingBased"] = true,
-    ["PingBasedOffset"] = 0,
-    ["parry_Range"] = 30,
-    ["BallSpeedCheck"] = true,
-    ["hit_Count"] = 0,
-    ["hit_Time"] = tick(),
-    ["ball_Warping"] = tick(),
-    ["is_ball_Warping"] = false,
-    ["last_target"] = nil,
+    canParry = true,
+    PingBased = true,
+    PingBasedOffset = 0,
+    parry_Range = 30,
+    BallSpeedCheck = true,
+    hit_Count = 0,
+    hit_Time = tick(),
+    ball_Warping = tick(),
+    is_ball_Warping = false,
+    last_target = nil,
 }
 
-local closest_Entity_To_mouse = nil
+local closestEntityToMouse = nil
 
-local function IsTheTarget()
-    return Player.Character:FindFirstChild("Highlight")
+local function isTargetHighlighted()
+    return Player.Character and Player.Character:FindFirstChild("Highlight") ~= nil
 end
 
-function getClosestEntityToMouse()
+local function getClosestEntityToMouse()
     local closest = nil
     local shortestDistance = math.huge
     local mouse = Player:GetMouse()
@@ -60,28 +59,20 @@ function getClosestEntityToMouse()
         end
     end
 
-    -- If no closest entity is found, warn the user
-    if not closest then
-        -- Logic if no closest entity found
-    end
-
-    return closest
+    return closest -- Return closest entity or nil if not found
 end
 
-local Takentime = tick() - aura_table.hit_Time
 RunService.Heartbeat:Connect(function()
-    Takentime = tick() - aura_table.hit_Time
-    closest_Entity_To_mouse = getClosestEntityToMouse()
+    closestEntityToMouse = getClosestEntityToMouse()
 end)
 
-local function FindBall()
-    local RealBall
-    for _, v in pairs(PawsBalls:GetChildren()) do
-        if v:GetAttribute("realBall") == true then
-            RealBall = v
+local function findBall()
+    for _, ball in pairs(BallsContainer:GetChildren()) do
+        if ball:GetAttribute("realBall") == true then
+            return ball -- Return the first real ball found
         end
     end
-    return RealBall
+    return nil -- Return nil if no real ball is found
 end
 
 RunService.PreRender:Connect(function()
@@ -140,12 +131,19 @@ RunService.PreRender:Connect(function()
 
     local Ping = ball_Velocity * (ping / 1000)
 
-    if PawsTable.PingBased then
-        Distance = aura_table.DistanceToParry - (Ping + PawsTable.PingBasedOffset)
-        if Distance < 0 then Distance = 0 end -- Prevent negative values
+    if VicoTable.PingBased then
+        -- Ensure Distance is calculated based on a number
+        if type(aura_table.DistanceToParry) == "number" then
+            Distance = aura_table.DistanceToParry - (Ping + PawsTable.PingBasedOffset)
+            if Distance < 0 then Distance = 0 end -- Prevent negative values
+        else
+            -- Handle case where DistanceToParry is not a number
+            warn("aura_table.DistanceToParry is not a number!")
+            Distance = 0 -- Fallback or alternative handling
+        end
     end
 
-    if aura_table.BallSpeedCheck and ball_Speed == 0 then return end -- Check ball speed
+    if VicoTable.BallSpeedCheck and ball_Speed == 0 then return end -- Check ball speed
 
     if ball_Distance <= aura_table.parry_Range and not aura_table.is_ball_Warping and ball_Speed > 0 and ball_Dot > 0.1 then
         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)

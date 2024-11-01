@@ -1,3 +1,5 @@
+print("succesfull")
+
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
     ["AutoParry"] = true,

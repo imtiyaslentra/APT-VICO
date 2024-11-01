@@ -1,6 +1,6 @@
 --// by Rudert
 
-print("succesfull")
+print("succesfull load the autoparry")
 
 -- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
@@ -13,6 +13,28 @@ getgenv().Paws = {
     ["AngleThreshold"] = 45,     -- Sudut maksimum untuk parry (dalam derajat)
     ["TrajectoryPrediction"] = true -- Mengaktifkan prediksi jalur
 }
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local VirtualManager = game:GetService("VirtualInputManager")
+local PawsTable = getgenv().Paws
+
+-- Fungsi untuk menemukan bola
+local function FindBall()
+    local RealBall
+    local Balls = workspace:WaitForChild("Balls", 5)
+    if not Balls then
+        warn("Balls not found in workspace")
+        return nil
+    end
+    for i, v in pairs(Balls:GetChildren()) do
+        if v:GetAttribute("realBall") == true then
+            RealBall = v
+            break
+        end
+    end
+    return RealBall
+end
 
 -- Fungsi untuk menghitung sudut kedatangan bola
 local function CalculateAngle(ballPosition, playerPosition, playerLookVector)
@@ -29,8 +51,13 @@ local function PredictBallPosition(ball)
     end
 end
 
+-- Fungsi untuk memastikan target
+local function IsTheTarget()
+    return Player.Character and Player.Character:FindFirstChild("Highlight")
+end
+
 -- Modifikasi utama pada auto-parry
-game:GetService("RunService").PreRender:connect(function()
+game:GetService("RunService").PreRender:Connect(function()
     local Ball = FindBall()
     if not Ball then return end
 

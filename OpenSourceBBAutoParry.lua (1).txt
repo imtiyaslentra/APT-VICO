@@ -1,128 +1,161 @@
---// by Rudert
-
-print("successful! now load the Script.")
-wait(1)
-print("hanya test ya Rawr")
-
--- Pengaturan tambahan untuk deteksi
-getgenv().Paws = {
-    ["AutoParry"] = true,
-    ["PingBased"] = true,
-    ["PingBasedOffset"] = 0,
-    ["DistanceToParry"] = 0.5,
-    ["BallSpeedCheck"] = true,
-    ["DynamicDistance"] = true,
-    ["AngleThreshold"] = 45,
-    ["TrajectoryPrediction"] = true,
-    ["WarpDetection"] = true,
-    ["ExecutorCheck"] = true,
-    ["AimbotPrediction"] = true,
+)
+    end
+end)
+-- Open Source Blade Ball Auto Parry By PawsThePaw --
+--// My Discord: pawsthepaw
+--// Notes: I'm not giving Away my Freeze & Invisibility Detection, lmao, this is sort of decent, time based, Enjoy, Skid, or Learn, Its Your Choice
+local aura_table = {
+        ["AutoParry"] = true,
+        ["PingBased"] = true,
+        ["PingBasedOffset"] = 0,
+        ["DistanceToParry"] = 0.5,
+        ["BallSpeedCheck"] = true,
+        ["hit_Count"] = 0,
+    	["hit_Time"] = tick(),
+	    ["ball_Warping"] = tick(),
+	    ["is_ball_Warping"] = false,
+	    ["last_target"] = nil,
 }
 
+Vim = game:GetService ("VirtualInputManager")
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local VirtualManager = game:GetService("VirtualInputManager")
+local ReplicatedPaw = game:GetService("ReplicatedStorage")
+
+local Paws = ReplicatedPaw:WaitForChild("Remotes", 9e9)
+local PawsBalls = workspace:WaitForChild("Balls", 9e9)
 local PawsTable = getgenv().Paws
 
--- Fungsi untuk menemukan bola
+local function IsTheTarget()
+        return Player.Character:FindFirstChild("Highlight")
+end
+
+function getClosestEntityToMouse()
+	local closest = nil
+	local shortestDistance = math.huge
+	local mouse = game.Players.LocalPlayer:GetMouse()
+
+	-- Ensure workspace.Alive exists
+	if not workspace:FindFirstChild("Alive") then
+		return nil
+	end
+
+	-- Loop through all entities
+	for _, entity in pairs(workspace.Alive:GetChildren()) do
+		if entity:IsA("Model") then
+			local humanoidRootPart = entity:FindFirstChild("HumanoidRootPart")
+			if humanoidRootPart then
+				-- Convert world position to screen position
+				local screenPoint = camera:WorldToViewportPoint(humanoidRootPart.Position)
+				local distanceToMouse = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+
+				-- Check if this is the closest entity so far
+				if distanceToMouse < shortestDistance then
+					closest = entity
+					shortestDistance = distanceToMouse
+				end
+			else
+				
+			end
+		else
+			
+		end
+	end
+
+	-- If no closest entity is found, warn the user
+	if not closest then
+		
+	else
+		
+	end
+
+	return closest
+end
+
+local closest_Entity_To_mouse = nil
+local Takentime = tick() - aura_table.hit_Time
+RunService.Heartbeat:Connect(function()
+Takentime = tick() - aura_table.hit_Time
+	task.spawn(function()
+		closest_Entity_To_mouse = getClosestEntityToMouse()
+	end)
+end)
+
 local function FindBall()
-    local Balls = workspace:WaitForChild("Balls", 5)
-    if not Balls then
-        warn("Balls not found in workspace")
-        return nil
-    end
-    for _, v in pairs(Balls:GetChildren()) do
+    local RealBall
+    for i, v in pairs(PawsBalls:GetChildren()) do
         if v:GetAttribute("realBall") == true then
-            return v
+            RealBall = v
         end
     end
-    return nil
+    return RealBall
 end
 
--- Fungsi untuk menghitung sudut kedatangan bola
-local function CalculateAngle(ballPosition, playerPosition, playerLookVector)
-    local directionToBall = (ballPosition - playerPosition).unit
-    return math.deg(math.acos(directionToBall:Dot(playerLookVector)))
-end
+game:GetService("RunService").PreRender:connect(function()
+        if not FindBall() then 
+                return
+        end
+        local self = FindBall()
+        
+        local player_Position = local_player.Character.PrimaryPart.Position
+    local ball_Position = self.Position
+    local ball_Velocity = self.AssemblyLinearVelocity
 
--- Fungsi untuk memprediksi posisi bola
-local function PredictBallPosition(ball, deltaTime)
-    if ball then
-        return ball.Position + (ball.AssemblyLinearVelocity * deltaTime)
-    end
-end
+local ball_Direction = (local_player.Character.PrimaryPart.Position - ball_Position).Unit
+    local ball_Distance = (local_player.Character.PrimaryPart.Position - ball_Position).Magnitude
+    local ball_Dot = ball_Direction:Dot(ball_Velocity.Unit)
+    local ball_Speed = ball_Velocity.Magnitude
 
--- Fungsi untuk memprediksi waktu kedatangan bola
-local function CalculateTimeToArrival(ball, playerPosition)
-    local distance = (ball.Position - playerPosition).Magnitude
-    local speed = ball.AssemblyLinearVelocity.Magnitude
-    if speed > 0 then
-        return distance / speed
-    end
-    return math.huge
-end
+local player_Velocity = local_player.Character.HumanoidRootPart.AssemblyLinearVelocity
+    local player_isMoving = player_Velocity.Magnitude > 0
+    local ball_speed_Limited = math.min(ball_Speed / 1000, 0.1)
+    local ball_predicted_Distance = (ball_Distance - ping / 15.3) - (ball_Speed / 3.5)
 
--- Fungsi untuk melakukan parry
-local function TryParry()
-    if PawsTable.AutoParry then
-        VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-    end
-end
+local targetPosition = closest_Entity_To_mouse.HumanoidRootPart.Position
+    local target_Distance = local_player:DistanceFromCharacter(targetPosition)
+    local closest_target_Distance = local_player:DistanceFromCharacter(closest_Entity.HumanoidRootPart.Position)
+    local target_distance_Limited = math.min(target_Distance / 10000, 0.1)
+    local target_Direction = (local_player.Character.PrimaryPart.Position - closest_Entity.HumanoidRootPart.Position).Unit
+    local target_Velocity = closest_Entity.HumanoidRootPart.AssemblyLinearVelocity
+    local target_isMoving = target_Velocity.Magnitude > 0
+    local target_Dot = target_isMoving and math.max(target_Direction:Dot(target_Velocity.Unit), 0)
 
--- Fungsi utama AutoParry
-game:GetService("RunService").PreRender:Connect(function()
-    local Ball = FindBall()
-    if not Ball then return end
+speedFactor = 3 - (ping / 100)
+    speedFactorPingBased = 6.1 - (ping / 100)
+    aura_table.parry_Range = math.max(math.max(ping, 3.5) + ball_Speed / speedFactor, speedFactorPingBased)
 
-    -- Pastikan karakter dan HumanoidRootPart tersedia
-    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-        return
-    end
+local velocity_angle = math.abs(math.acos(ball_Direction:Dot(ball_Velocity.Unit)))
 
-    local PlayerPosition = Player.Character.HumanoidRootPart.Position
-    local BallPosition = Ball.Position
-    local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude
-    local Distance = Player:DistanceFromCharacter(BallPosition)
-    
-    -- Cegah spam parry jika bola tidak benar-benar menarget
-    local AngleToBall = CalculateAngle(BallPosition, PlayerPosition, Player.Character.HumanoidRootPart.CFrame.LookVector)
-    if AngleToBall > PawsTable.AngleThreshold then
-        return -- Tidak melakukan parry jika sudut melebihi threshold
+    if ball_Dot < -0.2 then
+        aura_table.ball_Warping = tick()
     end
 
-    -- Pengaturan jarak dinamis berdasarkan kecepatan bola
-    if PawsTable.DynamicDistance then
-        local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
-        PawsTable.DistanceToParry = math.max(math.max(ping, 3.5) + BallVelocity / 50, 0.5)
-    end
+    task.spawn(function()
+        if (tick() - aura_table.ball_Warping) >= 0.15 + target_distance_Limited - ball_speed_Limited or ball_Distance <= 10 then
+            aura_table.is_ball_Warping = false
+            return
+        end
 
-    -- Prediksi posisi dan waktu kedatangan bola
-    if PawsTable.TrajectoryPrediction then
-        BallPosition = PredictBallPosition(Ball, 0.1) or BallPosition
-    end
-    local timeToArrival = CalculateTimeToArrival(Ball, PlayerPosition)
+        if aura_table.last_target then
+            if (ball_Position - aura_table.last_target.HumanoidRootPart.Position).Magnitude > 35.5 or target_Distance <= 12 then
+                aura_table.is_ball_Warping = false
+            end
+        end
 
-    -- Cegah parry jika waktu kedatangan terlalu jauh
-    if timeToArrival > PawsTable.DistanceToParry then return end
-
-    -- Cek jika ping-based disesuaikan untuk jarak
-    if PawsTable.PingBased then
+        aura_table.is_ball_Warping = true
+    end)
+        
         local Ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
+        
+        if PawsTable.PingBased then
         Distance -= Ping + PawsTable.PingBasedOffset
-    end
+        end
+        
+        if PawsTable.BallSpeedCheck and BallVelocity == 0 then return
+        end
+        
+        if (Distance / BallVelocity) <= PawsTable.DistanceToParry and IsTheTarget() and PawsTable.AutoParry then
 
-    -- Pastikan kecepatan bola > 0 jika BallSpeedCheck diaktifkan
-    if PawsTable.BallSpeedCheck and BallVelocity == 0 then return end
-
-    -- Executor Check untuk akurasi
-    if PawsTable.ExecutorCheck then
-        local playerSpeed = Player.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude
-        local velocityRatio = BallVelocity / (BallVelocity + playerSpeed)
-        print("Executor Accuracy:", math.floor(velocityRatio * 100), "%")
-    end
-
-    -- Lakukan parry jika semua kondisi terpenuhi
-    if Distance <= PawsTable.DistanceToParry and timeToArrival <= PawsTable.DistanceToParry then
-        TryParry()
-    end
+Vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+           end
 end)

@@ -1,78 +1,67 @@
--- Open Source Blade Ball Auto Parry By PawsThePaw --
---// My Discord: pawsthepaw
---// Notes: I'm not giving Away my Freeze & Invisibility Detection, lmao, this is sort of decent, time based, Enjoy, Skid, or Learn, Its Your Choice.
+-- Pengaturan tambahan untuk deteksi
 getgenv().Paws = {
-        ["AutoParry"] = true,
-        ["PingBased"] = true,
-        ["PingBasedOffset"] = 0,
-        ["DistanceToParry"] = 0.5,
-        ["BallSpeedCheck"] = true,
+    ["AutoParry"] = true,
+    ["PingBased"] = true,
+    ["PingBasedOffset"] = 0,
+    ["DistanceToParry"] = 0.5,
+    ["BallSpeedCheck"] = true,
+    ["DynamicDistance"] = true,  -- Pengaturan jarak dinamis
+    ["AngleThreshold"] = 45,     -- Sudut maksimum untuk parry (dalam derajat)
+    ["TrajectoryPrediction"] = true -- Mengaktifkan prediksi jalur
 }
 
-local VirtualManager = game:GetService("VirtualInputManager")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local ReplicatedPaw = game:GetService("ReplicatedStorage")
-local originalParryRemote
-local originalResolveParryRemote 
-
-local Paws = ReplicatedPaw:WaitForChild("Remotes", 9e9)
-local PawsBalls = workspace:WaitForChild("Balls", 9e9)
-local PawsTable = getgenv().Paws
-
-function resolve_parry_Remote()
- local temp_remote = game:GetService("VirtualUser"):WaitForChild("\n\n\n\n\n\n\n")
-
-    if not temp_remote then
-        return
-    end
-
-    if not temp_remote:IsA('RemoteEvent') then
-        return
-    end
-
-    originalParryRemote = temp_remote
+-- Fungsi untuk menghitung sudut kedatangan bola
+local function CalculateAngle(ballPosition, playerPosition, playerLookVector)
+    local directionToBall = (ballPosition - playerPosition).unit
+    local angle = math.deg(math.acos(directionToBall:Dot(playerLookVector)))
+    return angle
 end
 
-resolve_parry_Remote()
-
-local function IsTheTarget()
-        return Player.Character:FindFirstChild("Highlight")
-end
-
-local function FindBall()
-    local RealBall
-    for i, v in pairs(PawsBalls:GetChildren()) do
-        if v:GetAttribute("realBall") == true then
-            RealBall = v
-        end
+-- Fungsi untuk memprediksi jalur bola
+local function PredictBallPosition(ball)
+    if ball then
+        local futurePosition = ball.Position + (ball.AssemblyLinearVelocity * 0.1) -- 0.1 detik ke depan
+        return futurePosition
     end
-    return RealBall
 end
 
+-- Modifikasi utama pada auto-parry
 game:GetService("RunService").PreRender:connect(function()
-        if not FindBall() then 
-                return
-        end
-        local Ball = FindBall()
-        
-        local BallPosition = Ball.Position
-        
-        local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude
-        
-        local Distance = Player:DistanceFromCharacter(BallPosition)
-        
-        local Ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
-        
-        if PawsTable.PingBased then
-        Distance -= Ping + PawsTable.PingBasedOffset
-        end
-        
-        if PawsTable.BallSpeedCheck and BallVelocity == 0 then return
-        end
-        
-        if (Distance / BallVelocity) <= PawsTable.DistanceToParry and IsTheTarget() and PawsTable.AutoParry then
+    local Ball = FindBall()
+    if not Ball then return end
 
-VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-           end
+    local PlayerPosition = Player.Character.HumanoidRootPart.Position
+    local BallPosition = Ball.Position
+    local BallVelocity = Ball.AssemblyLinearVelocity.Magnitude
+    local Distance = Player:DistanceFromCharacter(BallPosition)
+
+    -- Pengaturan jarak dinamis berdasarkan kecepatan bola
+    if PawsTable.DynamicDistance then
+        PawsTable.DistanceToParry = math.clamp(BallVelocity / 50, 0.2, 1.5)
+    end
+
+    -- Penghitungan sudut kedatangan bola
+    local AngleToBall = CalculateAngle(BallPosition, PlayerPosition, Player.Character.HumanoidRootPart.CFrame.LookVector)
+    if AngleToBall > PawsTable.AngleThreshold then
+        return -- Tidak melakukan parry jika sudut melebihi threshold
+    end
+
+    -- Prediksi posisi bola di masa depan (jalur)
+    if PawsTable.TrajectoryPrediction then
+        BallPosition = PredictBallPosition(Ball) or BallPosition
+    end
+
+    -- Hitung jarak dengan penyesuaian ping
+    local Ping = BallVelocity * (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000)
+    if PawsTable.PingBased then
+        Distance -= Ping + PawsTable.PingBasedOffset
+    end
+
+    -- Pastikan kecepatan bola > 0 jika BallSpeedCheck diaktifkan
+    if PawsTable.BallSpeedCheck and BallVelocity == 0 then return end
+
+    -- Lakukan parry jika semua kondisi terpenuhi
+    if (Distance / BallVelocity) <= PawsTable.DistanceToParry and IsTheTarget() and PawsTable.AutoParry then
+        VirtualManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    end
 end)
